@@ -42,9 +42,6 @@ namespace panther {
                 this->mB = new T[size];
             } catch (std::bad_alloc e) {
                 throw e;
-                if (this->mA) delete[]this->mA;
-                if (this->mB) delete[]this->mB;
-                return;
             }
             for (int i = 0; i < size; i++) {
                 this->mA[i] = a[i];
@@ -97,7 +94,6 @@ namespace panther {
          * Constructor
          */
         GridLip() {
-            errcode = 0;
         }
 
         ~GridLip() {
@@ -118,8 +114,6 @@ namespace panther {
             dim = n;
             nodes = mOptions.mNodes;
             eps = mOptions.mEps;
-            fevals = 0;
-            iters = 0;
             allnodes = static_cast<int> (pow(nodes, dim));
             /* create 2 vectors */
             /* P contains parts (hyperintervals on which search must be performed */
@@ -134,17 +128,11 @@ namespace panther {
                 Fvalues = new T[allnodes];
             } catch (std::bad_alloc& ba) {
                 std::cerr << ba.what() << std::endl;
-                errcode = -2;
                 return UPB;
             }
             std::vector<Box <T> > P, P1;
             /* Upper bound */
             UPB = std::numeric_limits<T>::max();
-            /* check if function pointer provided */
-            if (f == nullptr) {
-                errcode = -1;
-                return UPB;
-            }
 
             /* Add first hyperinterval */
 
@@ -152,7 +140,6 @@ namespace panther {
                 P.emplace_back(dim, a, b);
             } catch (std::exception& e) {
                 std::cerr << e.what() << std::endl;
-                errcode = -2;
                 return UPB;
             }
 
@@ -165,7 +152,6 @@ namespace panther {
                 xs = new T[dim];
             } catch (std::bad_alloc& ba) {
                 std::cerr << ba.what() << std::endl;
-                errcode = -2;
                 return UPB;
             }
 
@@ -173,18 +159,17 @@ namespace panther {
             while (!P.empty()) {
                 /* number of iterations on this step (BFS) */
                 unsigned int parts = P.size();
-                iters += parts;
 
                 /* For all hyperintervals on this step perform grid search */
                 for (unsigned int i = 0; i < parts; i++) {
                     /* local values of upper and lower bounds, value of delta*L (Lipshitz const) */
                     T lUPB, lLOB, ldeltaL;
                     T* ta = P[i].mA, *tb = P[i].mB;
-                    GridEvaluator(ta, tb, xs, &lUPB, &lLOB, &ldeltaL, f);
+                    gridEvaluator(ta, tb, xs, &lUPB, &lLOB, &ldeltaL, f);
                     P[i].mLocLO = lLOB;
                     P[i].mLocUB = lUPB;
                     /* remember new results if less then previous */
-                    UpdateRecords(lUPB, xfound, xs);
+                    updateRecords(lUPB, xfound, xs);
                 }
 
                 /* Choose which hyperintervals should be subdivided */
@@ -192,7 +177,7 @@ namespace panther {
                     /* Subdivision criteria */
                     if (P[i].mLocLO < (UPB - eps)) {
                         /* If subdivide, choose dimension (the longest side) */
-                        int choosen = ChooseDim(P[i].mA, P[i].mB);
+                        int choosen = chooseDim(P[i].mA, P[i].mB);
 
                         /* Make new edges for 2 new hyperintervals */
                         for (int j = 0; j < dim; j++) {
@@ -209,14 +194,12 @@ namespace panther {
                             P1.emplace_back(dim, P[i].mA, b1);
                         } catch (std::exception& e) {
                             std::cerr << e.what() << std::endl;
-                            errcode = -2;
                             return UPB;
                         }
                         try {
                             P1.emplace_back(dim, a1, P[i].mB);
                         } catch (std::exception& e) {
                             std::cerr << e.what() << std::endl;
-                            errcode = -2;
                             return UPB;
                         }
                     }
@@ -232,38 +215,11 @@ namespace panther {
             return UPB;
         }
 
-        /**
-         * Check if there are errors during search process
-         */
-        virtual void checkErrors() {
-            switch (errcode) {
-                case -1:
-                    std::cerr << "Pointer to computing function (*compute) have not been initialized!" << std::endl;
-                    break;
-                case -2:
-                    std::cerr << "Sorry, amount of RAM on your device insufficient to solve this task, please upgrade :)" << std::endl;
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        /**
-         * get number of consumed func evaluations and algorithm iterations after search completed
-         * @param evs (retvalue) number of function evaluations
-         * @param its (retvalue) number of algorithm iterations
-         */
-        virtual void getinfo(unsigned long long int &evs, unsigned long int &its) {
-            evs = fevals;
-            its = iters;
-        }
 
     private:
 
-        unsigned long long fevals; /* number of function evaluations that search consumed */
-        unsigned long iters; /* nember of algorithm itaretions that search consumed */
         T eps; /* required accuracy */
-        int errcode, nodes, dim, allnodes; /* internal varibale for handlig errors and number of nodes per dimension */
+        int nodes, dim, allnodes; /* internal varibale for handlig errors and number of nodes per dimension */
         T UPB, LOB; /* obtained upper bound and lower bound */
         T *x = nullptr, *step = nullptr, *Fvalues = nullptr;
 
@@ -274,7 +230,7 @@ namespace panther {
         }
 
         /* Update the current record and its coordinates in accordance with new results obtained on some hyperinterval*/
-        virtual void UpdateRecords(const T LU, T* x, const T *xs) {
+        virtual void updateRecords(const T LU, T* x, const T *xs) {
             if (LU < UPB) {
                 UPB = LU;
                 for (int i = 0; i < dim; i++) {
@@ -284,7 +240,7 @@ namespace panther {
         }
 
         /* Select dimension for subdivide hyperinteral (choose the longest side) */
-        virtual int ChooseDim(const T *a, const T *b) {
+        virtual int chooseDim(const T *a, const T *b) {
             T max = std::numeric_limits<T>::min(), cr;
             int i, maxI = 0;
             for (i = 0; i < dim; i++) {
@@ -297,14 +253,13 @@ namespace panther {
             return maxI;
         }
 
-        virtual void GridEvaluator(const T *a, const T *b, T* xfound, T *Frp, T *LBp, T *dL, const std::function<T(const T * const)> &compute) {
-            T Fr = std::numeric_limits<T>::max(), L = std::numeric_limits<T>::min(), delta = std::numeric_limits<T>::min(), LB;
+        virtual void gridEvaluator(const T *a, const T *b, T* xfound, T *Frp, T *LBp, T *dL, const std::function<T(const T * const)> &compute) {
+            T Fr = std::numeric_limits<T>::max(), L = std::numeric_limits<T>::min(), delta = 0, LB;
             double R;
             for (int i = 0; i < dim; i++) {
                 step[i] = fabs(b[i] - a[i]) / (nodes - 1);
-                delta = step[i] > delta ? step[i] : delta;
+                delta += 0.5 * step[i];
             }
-            delta = delta * 0.5 * dim;
             R = getR(delta);
             int node = 0;
             /* Calculate and cache the value of the function in all points of the grid */
@@ -324,7 +279,6 @@ namespace panther {
                 }
             }
 
-            fevals += allnodes;
 
             /* Calculate coordinates of obtained upper bound */
 

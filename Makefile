@@ -3,6 +3,7 @@ all dep clean tests::
 	cd rosenbrock && $(MAKE) $@ && cd ..
 	cd advcoordesc && $(MAKE) $@ && cd ..
 	cd gridlip && $(MAKE) $@ && cd ..
+	cd sanne && $(MAKE) $@ && cd ..
 
 doc: indent doxy
 

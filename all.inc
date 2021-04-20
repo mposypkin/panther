@@ -8,13 +8,13 @@ LIBTOOL = ar -r
 #PCPPOPTS=-D__USE_STD_IOSTREAM -tweak
 
 #Pthread linking support options
-PTHREADLD=-pthread
+#PTHREADLD=-pthread
 
 #OpenMP specific compiler options
-OPENMPOPT=-fopenmp
+#OPENMPOPT=-fopenmp
 
 #OpenMP specific linker options
-OPENMPLD=-fopenmp
+#OPENMPLD=-fopenmp
 
 #optimization options
 #OPTIMOPT=-g

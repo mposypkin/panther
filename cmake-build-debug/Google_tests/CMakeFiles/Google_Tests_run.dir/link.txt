@@ -1,0 +1,1 @@
+/usr/local/Cellar/gcc/10.2.0/bin/g++-10  -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/Google_Tests_run.dir/__/CoordinateDescentMethod/CoordDescMethod_test.cpp.o  -o Google_Tests_run ../lib/libgtestd.a ../lib/libgtest_maind.a ../lib/libgtestd.a 

@@ -26,4 +26,5 @@ int main() {
     std::cout << "Found " << v << " at [" ;
     std::copy(x, x + n, std::ostream_iterator<double>(std::cout, " "));
     std::cout << "]\n";
+//    std::cout << f(x);
 }

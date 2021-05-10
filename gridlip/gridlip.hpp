@@ -14,8 +14,10 @@
 #ifndef GRIDLIP_HPP
 #define GRIDLIP_HPP
 
+
 #include <math.h>
 #include <algorithm>
+#include <vector>
 #include <limits>
 #include <common/bbsolver.hpp>
 
